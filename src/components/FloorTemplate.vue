@@ -2,15 +2,15 @@
 
 
 const props = defineProps({
-  level: Number,
+  floor: Number,
 })
 </script>
 
 <template>
   <div class="floor">
-    <div>{{ props.level }}.</div>
-    <div><img src="../assets/arrowUp.svg" alt="Arrow Up" class="arrow"/></div>
-    <div><img src="../assets/arrowDown.svg" alt="Arrow Down" class="arrow"/></div>
+    <div>{{ props.floor }}.</div>
+    <div><img src="../assets/arrowUp.svg" alt="Arrow Up" class="arrow" @click="$emit('elevatorCalled','UP',props.floor)"/></div>
+    <div><img src="../assets/arrowDown.svg" alt="Arrow Down" class="arrow" @click="$emit('elevatorCalled','DOWN',props.floor)"/></div>
   </div>
 </template>
 

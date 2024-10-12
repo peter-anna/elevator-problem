@@ -1,27 +1,27 @@
 <script setup lang="ts">
-import FloorButton from './FloorButton.vue';
-
-
 
 const props = defineProps({
   name: String,
+  currentFloor: Number,
+  status: String,
 })
+
 </script>
 
 <template>
   <div class="content">
     <div>Lift {{ props.name }}</div>
     <div>Destination:
-      <FloorButton :floor="0" :elevator="props.name" />
-      <FloorButton :floor="1" :elevator="props.name" />
-      <FloorButton :floor="2" :elevator="props.name" />
-      <FloorButton :floor="3" :elevator="props.name" />
-      <FloorButton :floor="4" :elevator="props.name" />
-      <FloorButton :floor="5" :elevator="props.name" />
-      <FloorButton :floor="6" :elevator="props.name" />
+      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 0, props.currentFloor!)">0</button>
+      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 1, props.currentFloor!)">1</button>
+      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 2, props.currentFloor!)">2</button>
+      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 3, props.currentFloor!)">3</button>
+      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 4, props.currentFloor!)">4</button>
+      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 5, props.currentFloor!)">5</button>
+      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 6, props.currentFloor!)">6</button>
     </div>
-    <div>Status:</div>
-    <div>Current floor:</div>
+    <div>Status: {{ props.status }}</div>
+    <div>Current floor: {{ props.currentFloor }}</div>
   </div>
 </template>
 
@@ -36,5 +36,6 @@ const props = defineProps({
 }
 .floorButton {
   margin: 2px;
+  cursor: pointer;
 }
 </style>
