@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ELEVATOR_STATUS } from '@/constants/elevatorStatus';
 
 const props = defineProps({
   name: String,
@@ -12,13 +13,13 @@ const props = defineProps({
   <div class="content">
     <div>Lift {{ props.name }}</div>
     <div>Destination:
-      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 0, props.currentFloor!)">0</button>
-      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 1, props.currentFloor!)">1</button>
-      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 2, props.currentFloor!)">2</button>
-      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 3, props.currentFloor!)">3</button>
-      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 4, props.currentFloor!)">4</button>
-      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 5, props.currentFloor!)">5</button>
-      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 6, props.currentFloor!)">6</button>
+      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 0)" :disabled="props.status === ELEVATOR_STATUS.CALLED">0</button>
+      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 1)" :disabled="props.status === ELEVATOR_STATUS.CALLED">1</button>
+      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 2)" :disabled="props.status === ELEVATOR_STATUS.CALLED">2</button>
+      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 3)" :disabled="props.status === ELEVATOR_STATUS.CALLED">3</button>
+      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 4)" :disabled="props.status === ELEVATOR_STATUS.CALLED">4</button>
+      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 5)" :disabled="props.status === ELEVATOR_STATUS.CALLED">5</button>
+      <button class="floorButton" @click="$emit('destinationSelected',props.name!, 6)" :disabled="props.status === ELEVATOR_STATUS.CALLED">6</button>
     </div>
     <div>Status: {{ props.status }}</div>
     <div>Current floor: {{ props.currentFloor }}</div>

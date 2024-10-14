@@ -1,108 +1,147 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import ElevatorTemplate from './components/ElevatorTemplate.vue';
-import Floor from './components/FloorTemplate.vue';
-import { ELEVATOR_STATUS } from './constants/elevatorStatus';
+import { ref } from 'vue'
+import ElevatorTemplate from './components/ElevatorTemplate.vue'
+import Floor from './components/FloorTemplate.vue'
+import { ELEVATOR_STATUS } from './constants/elevatorStatus'
+import type { Elevator } from './types/elevator';
 
-interface Elevator {
-  currentFloor: number;
-  status: string;
-}
+const elevatorCallQueue = ref<Array<{ direction: string, floor: number }>>([]);
 
 const elevatorA = ref<Elevator>({
   currentFloor: 0,
   status: ELEVATOR_STATUS.DESTINATION_REACHED,
-});
+  name: 'A'
+})
 
 const elevatorB = ref<Elevator>({
   currentFloor: 6,
   status: ELEVATOR_STATUS.DESTINATION_REACHED,
-});
+  name: 'B'
+})
 
 function moveElevator(elevator: Elevator, to: number) {
-  elevator.status = ELEVATOR_STATUS.MOVING;
+  elevator.status = ELEVATOR_STATUS.CALLED
 
   const interval = setInterval(() => {
     if (elevator.currentFloor < to) {
-      elevator.currentFloor += 1;
+      elevator.currentFloor += 1
     } else if (elevator.currentFloor > to) {
-      elevator.currentFloor -= 1;
+      elevator.currentFloor -= 1
     }
-
-    console.log(`Elevator is at floor ${elevator.currentFloor}`);
 
     if (elevator.currentFloor === to) {
-      clearInterval(interval);
-      elevator.status = ELEVATOR_STATUS.DESTINATION_REACHED;
-      console.log(`Elevator reached floor ${to}`);
+      clearInterval(interval)
+      elevator.status = ELEVATOR_STATUS.DESTINATION_REACHED
+
+      setTimeout(() => {
+        elevatorReachedDestination(elevator);  // process any pending external requests
+      }, 5000);
+
     }
-  }, 1000);
+  }, 1000)
 }
 
 function elevatorCalledEvent(direction: string, floor: number) {
-  console.log(direction, 'called from floor ', floor)
-  console.log(
-    'A status =',
-    elevatorA.value.status,
-    ' floor =',
-    elevatorA.value.currentFloor,
-  )
-  console.log(
-    'B status =',
-    elevatorB.value.status,
-    ' floor =',
-    elevatorB.value.currentFloor,
-  )
 
+  let comparisonResult = 'both_moving'
+  const distanceA = Math.abs(elevatorA.value.currentFloor - floor)
+  const distanceB = Math.abs(elevatorB.value.currentFloor - floor)
+
+   // check if either or both elevators are free
   if (
-    elevatorA.value.status == ELEVATOR_STATUS.DESTINATION_REACHED &&
-    elevatorB.value.status == ELEVATOR_STATUS.DESTINATION_REACHED
+    elevatorA.value.status === ELEVATOR_STATUS.DESTINATION_REACHED &&
+    elevatorB.value.status === ELEVATOR_STATUS.DESTINATION_REACHED
   ) {
-    const distanceA = Math.abs(elevatorA.value.currentFloor - floor)
-    const distanceB = Math.abs(elevatorB.value.currentFloor - floor)
-
     if (distanceA < distanceB) {
-      console.log('A is closer');
-      elevatorA.value.status = ELEVATOR_STATUS.CALLED;
-      moveElevator(elevatorA.value, floor);
-    } else if (distanceA > distanceB) {
-      console.log('B is closer');
-      elevatorB.value.status = ELEVATOR_STATUS.CALLED;
-      moveElevator(elevatorB.value, floor);
+      comparisonResult = 'A_closer'
+    } else if (distanceB < distanceA) {
+      comparisonResult = 'B_closer'
     } else {
-      console.log('Equal distance');
-      if (elevatorA.value.currentFloor < elevatorB.value.currentFloor) {
-        console.log('A will go');
-        elevatorA.value.status = ELEVATOR_STATUS.CALLED;
-        moveElevator(elevatorA.value, floor);
-      } else {
-        console.log('B will go');
-        elevatorB.value.status = ELEVATOR_STATUS.CALLED;
-        moveElevator(elevatorB.value, floor);
-      }
+      comparisonResult = 'equal_distance'
     }
+  } else if (elevatorA.value.status === ELEVATOR_STATUS.DESTINATION_REACHED) {
+    comparisonResult = 'A_free'
+  } else if (elevatorB.value.status === ELEVATOR_STATUS.DESTINATION_REACHED) {
+    comparisonResult = 'B_free'
+  }
+
+  switch (comparisonResult) {
+    case 'A_closer':
+      elevatorA.value.status = ELEVATOR_STATUS.CALLED
+      moveElevator(elevatorA.value, floor)
+      break
+    case 'B_closer':
+      elevatorB.value.status = ELEVATOR_STATUS.CALLED
+      moveElevator(elevatorB.value, floor)
+      break
+    case 'equal_distance':
+      if (elevatorA.value.currentFloor < elevatorB.value.currentFloor) {
+        elevatorA.value.status = ELEVATOR_STATUS.CALLED
+        moveElevator(elevatorA.value, floor)
+      } else if (elevatorB.value.currentFloor < elevatorA.value.currentFloor){
+        elevatorB.value.status = ELEVATOR_STATUS.CALLED
+        moveElevator(elevatorB.value, floor)
+      } else {
+        // the lifts are on the same floor
+        const randomChoice = Math.random() < 0.5 ? 'A' : 'B';
+    
+        if (randomChoice === 'A') {
+          elevatorA.value.status = ELEVATOR_STATUS.CALLED;
+          moveElevator(elevatorA.value, floor);
+        } else {
+          elevatorB.value.status = ELEVATOR_STATUS.CALLED;
+          moveElevator(elevatorB.value, floor);
+        }
+      }
+      break
+    case 'A_free':
+      elevatorA.value.status = ELEVATOR_STATUS.CALLED
+      moveElevator(elevatorA.value, floor)
+      break
+
+    case 'B_free':
+      elevatorB.value.status = ELEVATOR_STATUS.CALLED
+      moveElevator(elevatorB.value, floor)
+      break
+
+    default:
+      // if both are busy, queue the request for later processing
+      elevatorCallQueue.value.push({ direction, floor });
+      break
   }
 }
 
+function elevatorReachedDestination(elevator: Elevator) {
+  elevator.status = ELEVATOR_STATUS.DESTINATION_REACHED;
+  setTimeout(() => {
+  // check the external queue for any pending passenger requests (lift caller buttons)
+  if (elevatorCallQueue.value.length > 0) {
+    const nextCall = elevatorCallQueue.value.shift();
+    if (nextCall) {
+      elevator.status = ELEVATOR_STATUS.CALLED;
+      moveElevator(elevator, nextCall.floor);
+    }
+  }
+
+}, 2000);
+
+}
+
+
 function destinationSelectedEvent(
-  elevator: string,
+  elevatorName: string,
   destination: number,
-  currentFloor: number,
 ) {
-  console.log(
-    'elevator ',
-    elevator,
-    ' destination is ',
-    destination,
-    ' from floor ',
-    currentFloor,
-  )
-  if (elevator == 'A') {
-    elevatorA.value.status = ELEVATOR_STATUS.DESTINATION_SELECTED;
-    moveElevator(elevatorA.value, destination);
+  const elevator = elevatorName === 'A' ? elevatorA.value : elevatorB.value;
+
+  if (elevator.status === ELEVATOR_STATUS.CALLED) {
+  
+   return;
   } else {
-    elevatorB.value.status = ELEVATOR_STATUS.DESTINATION_SELECTED;
-    moveElevator(elevatorB.value, destination);
+    
+     // if the elevator is steady, move it to the requested destination
+    elevator.status = ELEVATOR_STATUS.CALLED;
+    moveElevator(elevator, destination);
   }
  
 }
@@ -110,13 +149,14 @@ function destinationSelectedEvent(
 
 <template>
   <div class="content">
-    <Floor :floor="6" @elevatorCalled="elevatorCalledEvent" />
-    <Floor :floor="5" @elevatorCalled="elevatorCalledEvent" />
-    <Floor :floor="4" @elevatorCalled="elevatorCalledEvent" />
-    <Floor :floor="3" @elevatorCalled="elevatorCalledEvent" />
-    <Floor :floor="2" @elevatorCalled="elevatorCalledEvent" />
-    <Floor :floor="1" @elevatorCalled="elevatorCalledEvent" />
-    <Floor :floor="0" @elevatorCalled="elevatorCalledEvent" />
+    <Floor :floor="6" :elevatorA="elevatorA" :elevatorB="elevatorB" @elevatorCalled="elevatorCalledEvent" />
+    <Floor :floor="5" :elevatorA="elevatorA" :elevatorB="elevatorB" @elevatorCalled="elevatorCalledEvent" />
+    <Floor :floor="4" :elevatorA="elevatorA" :elevatorB="elevatorB" @elevatorCalled="elevatorCalledEvent" />
+    <Floor :floor="3" :elevatorA="elevatorA" :elevatorB="elevatorB" @elevatorCalled="elevatorCalledEvent" />
+    <Floor :floor="2" :elevatorA="elevatorA" :elevatorB="elevatorB" @elevatorCalled="elevatorCalledEvent" />
+    <Floor :floor="1" :elevatorA="elevatorA" :elevatorB="elevatorB" @elevatorCalled="elevatorCalledEvent" />
+    <Floor :floor="0" :elevatorA="elevatorA" :elevatorB="elevatorB" @elevatorCalled="elevatorCalledEvent" />
+    
   </div>
   <div class="lifts">
     <ElevatorTemplate
